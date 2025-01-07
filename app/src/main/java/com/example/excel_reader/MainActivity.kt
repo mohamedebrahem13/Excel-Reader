@@ -19,9 +19,6 @@ class MainActivity : ComponentActivity() {
         setContent {
             ExcelReaderTheme {
                 Scaffold(
-                    topBar = {
-                        // Add your top bar (e.g., AppBar) here if needed
-                    },
                     content = { paddingValues ->
                         // Pass paddingValues to the ExcelScreen to ensure content is padded correctly
                         ExcelScreen(modifier = Modifier.padding(paddingValues))
