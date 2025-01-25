@@ -3,6 +3,7 @@ package com.example.excel_reader.ui
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -24,24 +26,35 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.excel_reader.utils.generateImageFromItems
+import com.example.excel_reader.utils.printBitmap
 
 @Composable
-fun ExcelScreen(modifier: Modifier = Modifier, excelViewModel: ExcelViewModel = hiltViewModel()) {
-    val items by excelViewModel.items.collectAsState() // Collect the list of items
-    val loading by excelViewModel.loading.collectAsState() // Collect the loading state for parsing
-    val modifyLoading by excelViewModel.modifyLoading.collectAsState() // Collect loading state for modifying
+fun ExcelScreen(
+    modifier: Modifier = Modifier,
+    excelViewModel: ExcelViewModel = hiltViewModel()
+) {
+    val items by excelViewModel.items.collectAsState()
+    val loading by excelViewModel.loading.collectAsState()
+    val modifyLoading by excelViewModel.modifyLoading.collectAsState()
     val context = LocalContext.current
 
     // Search query state
     var searchQuery by remember { mutableStateOf("") }
 
+    // State to control visibility of the preview in dialog
+    var showPreviewDialog by remember { mutableStateOf(false) }
+
+    // State to hold the Base64 string for the preview image
+
     // File picker launcher for picking an Excel file
     val pickFileLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()) { uri ->
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
         uri?.let {
             try {
                 val inputStream = context.contentResolver.openInputStream(it)
@@ -56,7 +69,7 @@ fun ExcelScreen(modifier: Modifier = Modifier, excelViewModel: ExcelViewModel = 
 
     // Filter items based on the search query
     val filteredItems = if (searchQuery.isEmpty()) {
-        items // Show all items if no search query
+        items
     } else {
         items.filter { it.productId.contains(searchQuery, ignoreCase = true) }
     }
@@ -73,12 +86,12 @@ fun ExcelScreen(modifier: Modifier = Modifier, excelViewModel: ExcelViewModel = 
         // Button to pick an Excel file
         Button(
             onClick = { pickFileLauncher.launch("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") },
-            enabled = !loading && !modifyLoading // Disable if loading or modifying
+            enabled = !loading && !modifyLoading
         ) {
             Text(text = "Pick an Excel File")
         }
 
-        // Show loading indicator when loading is true (for parsing)
+        // Show loading indicator when loading is true
         if (loading) {
             CircularProgressIndicator(modifier = Modifier.padding(top = 16.dp))
         }
@@ -88,18 +101,38 @@ fun ExcelScreen(modifier: Modifier = Modifier, excelViewModel: ExcelViewModel = 
             item {
                 // Header row
                 Row(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
-                    Text(modifier = Modifier.weight(1f), text = "Product ID", style = MaterialTheme.typography.bodyMedium)
-                    Text(modifier = Modifier.weight(1f), text = "Product Name", style = MaterialTheme.typography.bodyMedium)
-                    Text(modifier = Modifier.weight(1f), text = "Unit", style = MaterialTheme.typography.bodyMedium)
-                    Text(modifier = Modifier.weight(1f), text = "Cost", style = MaterialTheme.typography.bodyMedium)
-                    Text(modifier = Modifier.weight(1f), text = "Selling Price", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        modifier = Modifier.weight(1f),
+                        text = "Product ID",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        modifier = Modifier.weight(1f),
+                        text = "Product Name",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        modifier = Modifier.weight(1f),
+                        text = "Unit",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        modifier = Modifier.weight(1f),
+                        text = "Cost",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        modifier = Modifier.weight(1f),
+                        text = "Selling Price",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                 }
             }
             items(filteredItems) { item ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(8.dp) // Dynamic padding
+                        .padding(8.dp)
                         .background(
                             if (item.productId.contains(searchQuery, ignoreCase = true)) Color.Yellow
                             else Color.Transparent
@@ -113,11 +146,43 @@ fun ExcelScreen(modifier: Modifier = Modifier, excelViewModel: ExcelViewModel = 
                 }
             }
         }
-    }
-}
 
-@Preview(showBackground = true)
-@Composable
-fun PreviewExcelScreen() {
-    ExcelScreen()
-}
+        // Button to generate and show the preview in a dialog
+        Button(onClick = {
+            showPreviewDialog = true // Show dialog
+        }) {
+            Text("Show Preview")
+        }
+    }
+
+// Show the preview in a dialog
+    if (showPreviewDialog) {
+        val bitmap = generateImageFromItems(context, filteredItems)
+
+        AlertDialog(
+            onDismissRequest = { showPreviewDialog = false },
+            title = { Text(text = "Preview") },
+            text = {
+                // Display the preview image in the dialog
+                Image(
+                    bitmap = bitmap.asImageBitmap(),
+                    contentDescription = "Preview Image",
+                    modifier = Modifier.fillMaxSize()
+                )
+            },
+            confirmButton = {
+                Button(onClick = {
+                    printBitmap(context, bitmap)  // Call the print function
+                    showPreviewDialog = false  // Close the dialog after printing
+                }) {
+                    Text("Print")
+                }
+            },
+            dismissButton = {
+                Button(onClick = { showPreviewDialog = false }) {
+                    Text("Close")
+                }
+            }
+        )
+    }
+    }

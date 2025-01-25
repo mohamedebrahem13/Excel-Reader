@@ -4,6 +4,8 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.dagger.hilt)
     kotlin("kapt")
+    id("kotlin-parcelize")
+
 }
 
 android {
@@ -45,8 +47,10 @@ dependencies {
     // Apache POI for Excel processing
     implementation(libs.poi.ooxml)
     implementation(libs.commons.collections4) // Required for POI
+    implementation(libs.escpos.thermalprinter.android.v330)
 
-    implementation(libs.datastore) // For core DataStore
+
+            implementation(libs.datastore) // For core DataStore
     implementation(libs.datastore.preferences) // For Preferences DataStore
     // Dagger Hilt
     implementation(libs.dagger.hilt.android)
