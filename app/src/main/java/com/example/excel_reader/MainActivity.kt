@@ -13,7 +13,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
-import com.example.excel_reader.ui.ExcelScreen
+import com.example.excel_reader.ui.PrintItemsScreen
 import com.example.excel_reader.ui.reciver.BluetoothStateReceiver
 import com.example.excel_reader.ui.theme.AppTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -70,7 +70,7 @@ class MainActivity : ComponentActivity() {
             AppTheme {
                 Scaffold(
                     content = { paddingValues ->
-                        ExcelScreen( Modifier.padding(paddingValues))
+                        PrintItemsScreen( Modifier.padding(paddingValues))
 
                     }
                 )

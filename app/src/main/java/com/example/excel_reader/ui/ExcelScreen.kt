@@ -3,7 +3,6 @@ package com.example.excel_reader.ui
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,12 +25,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.excel_reader.utils.generateImageFromItems
-import com.example.excel_reader.utils.printBitmap
 
 @Composable
 fun ExcelScreen(
@@ -157,22 +154,16 @@ fun ExcelScreen(
 
 // Show the preview in a dialog
     if (showPreviewDialog) {
-        val bitmap = generateImageFromItems(context, filteredItems)
+//        val bitmap = generateImageFromItems(filteredItems)
 
         AlertDialog(
             onDismissRequest = { showPreviewDialog = false },
             title = { Text(text = "Preview") },
             text = {
                 // Display the preview image in the dialog
-                Image(
-                    bitmap = bitmap.asImageBitmap(),
-                    contentDescription = "Preview Image",
-                    modifier = Modifier.fillMaxSize()
-                )
             },
             confirmButton = {
                 Button(onClick = {
-                    printBitmap(context, bitmap)  // Call the print function
                     showPreviewDialog = false  // Close the dialog after printing
                 }) {
                     Text("Print")

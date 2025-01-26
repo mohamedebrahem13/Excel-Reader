@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.DashPathEffect
 import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.Typeface
@@ -15,64 +16,37 @@ import com.example.excel_reader.data.models.Item
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.random.Random
 
-// Function to convert mm to pixels based on screen density
-fun mmToPixels(context: Context, mm: Float): Float {
-    val density = context.resources.displayMetrics.densityDpi
-    val mmPerInch = 25.4f
-    return mm * (density / mmPerInch)
-}
-
-fun generateImageFromItems(context: Context, items: List<Item>): Bitmap {
-    // Convert 79.5 mm to pixels for the image width (receipt width)
-    val imageWidthPx = mmToPixels(context, 79.5f).toInt()
+fun generateImageFromItems(items: List<Item>): Bitmap {
+    val imageWidthPx = (201 * 70) / 25.4f // Approximate 554 pixels
 
     val paint = Paint().apply {
         color = Color.BLACK
-        textSize = 40f // Text size for the content
-    }
-    val headerFooterPaint = Paint().apply {
-        color = Color.BLACK
-        textSize = 50f // Slightly larger for header/footer
-        typeface = Typeface.create(Typeface.DEFAULT_BOLD, Typeface.BOLD) // Bold text
-    }
-    val datePaint = Paint().apply {
-        color = Color.BLACK
-        textSize = 40f // Slightly smaller for the date
-        typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+        textSize = 20f
+        typeface = Typeface.create(Typeface.DEFAULT_BOLD, Typeface.NORMAL)
+        textAlign = Paint.Align.LEFT
     }
 
     val rect = Rect()
-    var totalHeight = 0f // Start with 0 height to calculate dynamically
+    var totalHeight = 0f // To dynamically calculate content height
 
     // Calculate the total height for the content
     items.forEach { item ->
-        paint.getTextBounds(item.productId, 0, item.productId.length, rect)
-        totalHeight += rect.height() + 10f // Add space between lines
-
         paint.getTextBounds(item.productName, 0, item.productName.length, rect)
         totalHeight += rect.height() + 10f
 
-        paint.getTextBounds(item.unit, 0, item.unit.length, rect)
-        totalHeight += rect.height() + 10f
-
-        paint.getTextBounds(item.cost.toString(), 0, item.cost.toString().length, rect)
-        totalHeight += rect.height() + 10f
-
         paint.getTextBounds(item.sellingPrice.toString(), 0, item.sellingPrice.toString().length, rect)
-        totalHeight += rect.height() + 20f // Add extra space before the next item
+        totalHeight += rect.height() + 20f
     }
 
-    // Set padding for top, bottom, and header/footer
-    val headerFooterHeight = 200f // Adjusted height for Arabic text + date
+    val headerFooterHeight = 200f
     val topBottomPadding = 50f
     val imageHeightPx = (totalHeight + topBottomPadding * 2 + headerFooterHeight * 2).toInt()
 
-    // Create a bitmap with calculated size
-    val bitmap = Bitmap.createBitmap(imageWidthPx, imageHeightPx, Bitmap.Config.ARGB_8888)
+    // Create bitmap
+    val bitmap = Bitmap.createBitmap(imageWidthPx.toInt(), imageHeightPx, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
-
-    // Draw background color (white)
     canvas.drawColor(Color.WHITE)
 
     // Draw today's date
@@ -82,70 +56,108 @@ fun generateImageFromItems(context: Context, items: List<Item>): Bitmap {
 
     canvas.drawText(
         currentDate,
-        xCenter - datePaint.measureText(currentDate) / 2,
+        xCenter - paint.measureText(currentDate) / 2,
         yDatePosition,
-        datePaint
+        paint
     )
 
-    // Draw Arabic header text
+    val yHeaderStart = yDatePosition + paint.textSize + 10f
+
+    // Draw header and invoice number (Arabic text)
     val headerLine1 = "بكير"
     val headerLine2 = "مبيعات"
+    val invoiceNumber = "رقم الفاتورة: ${"INV-${Random.nextInt(1000, 9999)}"}"
 
-    val yHeaderStart = yDatePosition + datePaint.textSize + 20f // Position header below date
-
-    // Draw first line of the header (centered)
     canvas.drawText(
         headerLine1,
-        xCenter - headerFooterPaint.measureText(headerLine1) / 2,
+        xCenter - paint.measureText(headerLine1) / 2,
         yHeaderStart,
-        headerFooterPaint
+        paint
     )
 
-    // Draw second line of the header (below the first line)
     canvas.drawText(
         headerLine2,
-        xCenter - headerFooterPaint.measureText(headerLine2) / 2,
-        yHeaderStart + headerFooterPaint.textSize + 10f, // Add spacing between lines
-        headerFooterPaint
+        xCenter - paint.measureText(headerLine2) / 2,
+        yHeaderStart + paint.textSize + 10f,
+        paint
     )
 
-    // Start drawing text content below the header
-    var yPos = headerFooterHeight + topBottomPadding
-    items.forEach { item ->
-        paint.getTextBounds(item.productId, 0, item.productId.length, rect)
-        canvas.drawText("Product ID: ${item.productId}", 50f, yPos, paint)
-        yPos += rect.height() + 10f
+    canvas.drawText(
+        invoiceNumber,
+        xCenter - paint.measureText(invoiceNumber) / 2,
+        yHeaderStart + paint.textSize * 2 + 20f,
+        paint
+    )
 
-        paint.getTextBounds(item.productName, 0, item.productName.length, rect)
-        canvas.drawText("Product Name: ${item.productName}", 50f, yPos, paint)
-        yPos += rect.height() + 10f
-
-        paint.getTextBounds(item.unit, 0, item.unit.length, rect)
-        canvas.drawText("Unit: ${item.unit}", 50f, yPos, paint)
-        yPos += rect.height() + 10f
-
-        paint.getTextBounds(item.cost.toString(), 0, item.cost.toString().length, rect)
-        canvas.drawText("Cost: ${item.cost}", 50f, yPos, paint)
-        yPos += rect.height() + 10f
-
-        paint.getTextBounds(item.sellingPrice.toString(), 0, item.sellingPrice.toString().length, rect)
-        canvas.drawText("Selling Price: ${item.sellingPrice}", 50f, yPos, paint)
-        yPos += rect.height() + 20f
+    val linePaint = Paint().apply {
+        color = Color.BLACK
+        strokeWidth = 2f
+        pathEffect = DashPathEffect(floatArrayOf(10f, 10f), 0f)
     }
 
-    // Draw footer text
-    val footerText = "شكؤا لك على زيارتك"
+    val lineY = yHeaderStart + paint.textSize * 3 + 30f
+    canvas.drawLine(0f, lineY, imageWidthPx, lineY, linePaint)
+
+    var yPos = lineY + 30f
+    val lineSpacing = 20f // Increase the space between each line of product
+
+    // Iterate through items to draw product names and prices
+    items.forEach { item ->
+        val arabicProductName = "اسم المنتج: ${item.productName}"
+        val arabicSellingPrice = "السعر: ${item.sellingPrice}"
+
+        val productNameWidth = paint.measureText(arabicProductName)
+        val priceWidth = paint.measureText(arabicSellingPrice)
+
+        if (productNameWidth + priceWidth > imageWidthPx - 20f) {
+            // Move price to the next line if it doesn't fit
+            val truncatedProductName = arabicProductName
+            val productNameXPos = 10f
+
+            // Draw product name
+            canvas.drawText(truncatedProductName, productNameXPos, yPos, paint)
+
+            // Move yPos to the next line after drawing the price
+            yPos += rect.height() // Only move down by the height of the product name
+
+            // Draw the price below the product name
+            val sellingPriceXPos = 10f
+            canvas.drawText(arabicSellingPrice, sellingPriceXPos, yPos, paint)
+        } else {
+            // If the product name and price fit on the same line
+            val productNameXPos = imageWidthPx - productNameWidth - 10f
+            val sellingPriceXPos = 10f
+
+            // Draw product name
+            canvas.drawText(arabicProductName, productNameXPos, yPos, paint)
+
+            // Draw selling price
+            canvas.drawText(arabicSellingPrice, sellingPriceXPos, yPos, paint)
+        }
+
+        // Adjust for the next item by adding space after each line
+        yPos += rect.height() + lineSpacing // Increase the space between each line
+    }
+    // Draw dashed line and footer text
+    val lineAboveFooterY = imageHeightPx - topBottomPadding - 5f
+    canvas.drawLine(0f, lineAboveFooterY, imageWidthPx, lineAboveFooterY, linePaint)
+
+
+   // Move the footer text down by increasing the Y position
+    val footerYPosition = imageHeightPx - topBottomPadding + 20f  // Adjust the value to move down
+    val footerText = "شكرا لك على زيارتك"
+
     canvas.drawText(
         footerText,
-        (imageWidthPx - headerFooterPaint.measureText(footerText)) / 2,
-        imageHeightPx - topBottomPadding,
-        headerFooterPaint
+        (imageWidthPx - paint.measureText(footerText)) / 2,
+        footerYPosition,
+        paint
     )
 
     return bitmap
 }
 
- fun printBitmap(context: Context, bitmap: Bitmap) {
+fun printBitmap(context: Context, bitmap: Bitmap) {
     try {
         // Select the first paired Bluetooth printer
         val connection = BluetoothPrintersConnections.selectFirstPaired()
@@ -155,13 +167,50 @@ fun generateImageFromItems(context: Context, items: List<Item>): Bitmap {
         }
 
         // Initialize the printer
-        val printer = EscPosPrinter(connection, 203, 48f, 32)
+        val printer = EscPosPrinter(connection, 203, 70f, 48)
 
-        // Convert the Bitmap to a hexadecimal string for the printer
-        val hexString = PrinterTextParserImg.bitmapToHexadecimalString(printer, bitmap)
+        // Get the bitmap's width and height
+        val width = bitmap.width
+        val height = bitmap.height
 
-        // Print the Bitmap
-        printer.printFormattedText("[C]$hexString\n")
+        // Calculate the new width and height based on the printer's width
+        val targetWidthPx = (203 * 70) / 25.4f // This is the target width in pixels (calculated earlier)
+        val scaleFactor = targetWidthPx / width.toFloat()
+
+        // Resize the bitmap if it's smaller than the target width
+        val resizedBitmap = if (width < targetWidthPx) {
+            Bitmap.createScaledBitmap(bitmap, targetWidthPx.toInt(), (height * scaleFactor).toInt(), true)
+        } else {
+            bitmap
+        }
+
+        // Get the new width and height of the resized bitmap
+        val resizedWidth = resizedBitmap.width
+        val resizedHeight = resizedBitmap.height
+
+        // StringBuilder to store all chunks of the print job
+        val textToPrint = StringBuilder()
+
+        // Split the image into chunks and convert each chunk to hexadecimal string for the printer
+        for (y in 0 until resizedHeight step 256) {
+            // Create a smaller bitmap (chunk) for each 256px slice
+            val chunkBitmap = Bitmap.createBitmap(
+                resizedBitmap,
+                0,
+                y,
+                resizedWidth,
+                if (y + 256 >= resizedHeight) resizedHeight - y else 256
+            )
+
+            // Convert the chunk bitmap to a hexadecimal string
+            val hexString = PrinterTextParserImg.bitmapToHexadecimalString(printer, chunkBitmap)
+
+            // Add the chunk to the text to print
+            textToPrint.append("[C]<img>$hexString</img>\n")
+        }
+
+        // Send the formatted text to the printer
+        printer.printFormattedText(textToPrint.toString())
 
         // Show success message
         Toast.makeText(context, "Bitmap printed successfully.", Toast.LENGTH_SHORT).show()
@@ -170,4 +219,3 @@ fun generateImageFromItems(context: Context, items: List<Item>): Bitmap {
         Toast.makeText(context, "Printing failed: ${e.message}", Toast.LENGTH_SHORT).show()
     }
 }
-
